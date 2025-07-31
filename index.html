@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LINE OA 圖文選單產生器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #00C300, #00A600);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #00C300, #00FF00);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: flex;
+            gap: 30px;
+            padding: 30px;
+        }
+        
+        .controls {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .preview {
+            flex: 1;
+            min-width: 400px;
+        }
+        
+        .section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .section:hover {
+            border-color: #00C300;
+            box-shadow: 0 5px 15px rgba(0,195,0,0.1);
+        }
+        
+        .section h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section h3::before {
+            content: '🎨';
+            font-size: 1.5rem;
+        }
+        
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .template-btn {
+            background: white;
+            border: 3px solid #e9ecef;
+            border-radius: 12px;
+            padding: 15px 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        .template-btn:hover {
+            border-color: #00C300;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,195,0,0.2);
+        }
+        
+        .template-btn.active {
+            background: #00C300;
+            color: white;
+            border-color: #00C300;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .input-group input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .input-group input[type="text"]:focus {
+            outline: none;
+            border-color: #00C300;
+            box-shadow: 0 0 0 3px rgba(0,195,0,0.1);
+        }
+        
+        .input-group input[type="color"] {
+            width: 60px;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .color-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .menu-inputs {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .canvas-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        #menuCanvas {
+            border: 2px dashed #e9ecef;
+            border-radius: 10px;
+            max-width: 100%;
+            height: auto;
+            transition: all 0.3s ease;
+        }
+        
+        #menuCanvas:hover {
+            border-color: #00C300;
+        }
+        
+        .download-btn {
+            background: linear-gradient(45deg, #00C300, #00FF00);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,195,0,0.3);
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,195,0,0.4);
+        }
+        
+        .specs {
+            background: #e8f5e8;
+            border-left: 4px solid #00C300;
+            padding: 15px;
+            border-radius: 0 10px 10px 0;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #333;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .template-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>LINE OA 圖文選單產生器</h1>
+            <p>輕鬆製作專業的LINE官方帳號圖文選單</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="controls">
+                <div class="section">
+                    <h3>選擇模板</h3>
+                    <div class="template-grid">
+                        <div class="template-btn active" data-template="2x2">
+                            2×2<br>四格
+                        </div>
+                        <div class="template-btn" data-template="1x3">
+                            1×3<br>三列
+                        </div>
+                        <div class="template-btn" data-template="3x1">
+                            3×1<br>三欄
+                        </div>
+                        <div class="template-btn" data-template="2x3">
+                            2×3<br>六格
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3>色彩設定</h3>
+                    <div class="color-controls">
+                        <div class="input-group">
+                            <label>背景色</label>
+                            <input type="color" id="bgColor" value="#ffffff">
+                        </div>
+                        <div class="input-group">
+                            <label>文字色</label>
+                            <input type="color" id="textColor" value="#333333">
+                        </div>
+                        <div class="input-group">
+                            <label>邊框色</label>
+                            <input type="color" id="borderColor" value="#e9ecef">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3>選單文字</h3>
+                    <div class="menu-inputs" id="menuInputs">
+                        <!-- 動態生成輸入框 -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="preview">
+                <div class="canvas-container">
+                    <canvas id="menuCanvas" width="800" height="540"></canvas>
+                    <button class="download-btn" id="downloadBtn">
+                        💾 下載圖片
+                    </button>
+                    <div class="specs">
+                        <strong>規格說明：</strong><br>
+                        • 尺寸：800×540 像素<br>
+                        • 格式：PNG<br>
+                        • 適用於LINE官方帳號圖文選單
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTemplate = '2x2';
+        let menuTexts = ['選單1', '選單2', '選單3', '選單4'];
+        
+        const templates = {
+            '2x2': { cols: 2, rows: 2, count: 4, texts: ['選單1', '選單2', '選單3', '選單4'] },
+            '1x3': { cols: 1, rows: 3, count: 3, texts: ['選單1', '選單2', '選單3'] },
+            '3x1': { cols: 3, rows: 1, count: 3, texts: ['選單1', '選單2', '選單3'] },
+            '2x3': { cols: 2, rows: 3, count: 6, texts: ['選單1', '選單2', '選單3', '選單4', '選單5', '選單6'] }
+        };
+        
+        function initializeApp() {
+            setupTemplateButtons();
+            setupColorInputs();
+            setupDownloadButton();
+            generateMenuInputs();
+            drawMenu();
+        }
+        
+        function setupDownloadButton() {
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.addEventListener('click', downloadImage);
+        }
+        
+        function setupTemplateButtons() {
+            const templateBtns = document.querySelectorAll('.template-btn');
+            templateBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    templateBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentTemplate = btn.dataset.template;
+                    generateMenuInputs();
+                    drawMenu();
+                });
+            });
+        }
+        
+        function setupColorInputs() {
+            const colorInputs = ['bgColor', 'textColor', 'borderColor'];
+            colorInputs.forEach(id => {
+                document.getElementById(id).addEventListener('input', drawMenu);
+            });
+        }
+        
+        function generateMenuInputs() {
+            const container = document.getElementById('menuInputs');
+            const template = templates[currentTemplate];
+            menuTexts = template.texts.slice();
+            
+            container.innerHTML = '';
+            
+            for (let i = 0; i < template.count; i++) {
+                const inputGroup = document.createElement('div');
+                inputGroup.className = 'input-group';
+                inputGroup.innerHTML = `
+                    <label>選單 ${i + 1}</label>
+                    <input type="text" value="${menuTexts[i]}" onchange="updateMenuText(${i}, this.value)">
+                `;
+                container.appendChild(inputGroup);
+            }
+        }
+        
+        function updateMenuText(index, value) {
+            menuTexts[index] = value;
+            drawMenu();
+        }
+        
+        function drawMenu() {
+            const canvas = document.getElementById('menuCanvas');
+            const ctx = canvas.getContext('2d');
+            const template = templates[currentTemplate];
+            
+            const bgColor = document.getElementById('bgColor').value;
+            const textColor = document.getElementById('textColor').value;
+            const borderColor = document.getElementById('borderColor').value;
+            
+            // 清除畫布
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 計算每個格子的尺寸
+            const cellWidth = canvas.width / template.cols;
+            const cellHeight = canvas.height / template.rows;
+            
+            // 設定文字樣式
+            ctx.fillStyle = textColor;
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = 2;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // 動態調整字體大小
+            const fontSize = Math.min(cellWidth, cellHeight) / 8;
+            ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+            
+            // 繪製格子和文字
+            for (let row = 0; row < template.rows; row++) {
+                for (let col = 0; col < template.cols; col++) {
+                    const index = row * template.cols + col;
+                    if (index >= template.count) break;
+                    
+                    const x = col * cellWidth;
+                    const y = row * cellHeight;
+                    
+                    // 繪製邊框
+                    ctx.strokeRect(x, y, cellWidth, cellHeight);
+                    
+                    // 繪製文字
+                    const centerX = x + cellWidth / 2;
+                    const centerY = y + cellHeight / 2;
+                    
+                    // 處理長文字自動換行
+                    const text = menuTexts[index] || `選單${index + 1}`;
+                    drawWrappedText(ctx, text, centerX, centerY, cellWidth - 20, fontSize);
+                }
+            }
+        }
+        
+        function drawWrappedText(ctx, text, x, y, maxWidth, fontSize) {
+            const words = text.split('');
+            let line = '';
+            const lines = [];
+            
+            for (let i = 0; i < words.length; i++) {
+                const testLine = line + words[i];
+                const metrics = ctx.measureText(testLine);
+                
+                if (metrics.width > maxWidth && line !== '') {
+                    lines.push(line);
+                    line = words[i];
+                } else {
+                    line = testLine;
+                }
+            }
+            lines.push(line);
+            
+            // 繪製多行文字
+            const lineHeight = fontSize * 1.2;
+            const startY = y - ((lines.length - 1) * lineHeight) / 2;
+            
+            lines.forEach((line, index) => {
+                ctx.fillText(line, x, startY + index * lineHeight);
+            });
+        }
+        
+        function downloadImage() {
+            try {
+                const canvas = document.getElementById('menuCanvas');
+                const link = document.createElement('a');
+                
+                // 確保canvas有內容
+                if (!canvas || canvas.width === 0 || canvas.height === 0) {
+                    alert('畫布尚未準備好，請稍候再試');
+                    return;
+                }
+                
+                // 生成圖片數據
+                const dataURL = canvas.toDataURL('image/png', 1.0);
+                
+                if (dataURL === 'data:,') {
+                    alert('圖片生成失敗，請重新嘗試');
+                    return;
+                }
+                
+                link.download = `LINE_OA_圖文選單_${currentTemplate}_${new Date().getTime()}.png`;
+                link.href = dataURL;
+                
+                // 添加到DOM並點擊
+                document.body.appendChild(link);
+                link.click();
+                
+                // 清理
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                }, 100);
+                
+                console.log('圖片下載成功');
+            } catch (error) {
+                console.error('下載錯誤:', error);
+                alert('下載失敗，請檢查瀏覽器設置或重新嘗試');
+            }
+        }
+        
+        // 初始化應用
+        initializeApp();
+    </script>
+</body>
+</html>
