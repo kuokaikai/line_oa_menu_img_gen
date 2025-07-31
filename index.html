@@ -154,10 +154,92 @@
             cursor: pointer;
         }
         
-        .color-controls {
+        .bg-controls {
             display: flex;
-            gap: 15px;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .bg-type-selector {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .radio-label {
+            display: flex;
             align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-weight: normal;
+        }
+        
+        .radio-label input[type="radio"] {
+            margin: 0;
+        }
+        
+        .bg-option {
+            transition: all 0.3s ease;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .file-upload-area {
+            border: 2px dashed #e9ecef;
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+        
+        .file-upload-area:hover {
+            border-color: #00C300;
+            background: #e8f5e8;
+        }
+        
+        .file-upload-area.dragover {
+            border-color: #00C300;
+            background: #e8f5e8;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .upload-text {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .upload-hint {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+        }
+        
+        .input-group input[type="range"] {
+            width: 70%;
+            margin-right: 10px;
+        }
+        
+        .input-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
         }
         
         .menu-inputs {
@@ -258,12 +340,56 @@
                 </div>
                 
                 <div class="section">
-                    <h3>色彩設定</h3>
-                    <div class="color-controls">
-                        <div class="input-group">
-                            <label>背景色</label>
-                            <input type="color" id="bgColor" value="#ffffff">
+                    <h3>背景設定</h3>
+                    <div class="bg-controls">
+                        <div class="bg-type-selector">
+                            <label class="radio-label">
+                                <input type="radio" name="bgType" value="color" checked>
+                                <span>純色背景</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="bgType" value="image">
+                                <span>圖片背景</span>
+                            </label>
                         </div>
+                        
+                        <div id="colorBgControls" class="bg-option">
+                            <div class="input-group">
+                                <label>背景色</label>
+                                <input type="color" id="bgColor" value="#ffffff">
+                            </div>
+                        </div>
+                        
+                        <div id="imageBgControls" class="bg-option" style="display: none;">
+                            <div class="input-group">
+                                <label>上傳背景圖</label>
+                                <input type="file" id="bgImageInput" accept="image/*" class="file-input">
+                                <div class="file-upload-area" id="fileUploadArea">
+                                    <div class="upload-icon">📁</div>
+                                    <div class="upload-text">點擊選擇圖片或拖拽至此</div>
+                                    <div class="upload-hint">支援 JPG、PNG、GIF 格式</div>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label>圖片透明度</label>
+                                <input type="range" id="bgOpacity" min="0.1" max="1" step="0.1" value="0.8">
+                                <span id="opacityValue">80%</span>
+                            </div>
+                            <div class="input-group">
+                                <label>圖片填充方式</label>
+                                <select id="bgFitMode">
+                                    <option value="cover">填滿裁切</option>
+                                    <option value="contain">完整顯示</option>
+                                    <option value="stretch">拉伸填滿</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3>文字設定</h3>
+                    <div class="color-controls">
                         <div class="input-group">
                             <label>文字色</label>
                             <input type="color" id="textColor" value="#333333">
@@ -271,6 +397,11 @@
                         <div class="input-group">
                             <label>邊框色</label>
                             <input type="color" id="borderColor" value="#e9ecef">
+                        </div>
+                        <div class="input-group">
+                            <label>文字描邊</label>
+                            <input type="checkbox" id="textStroke">
+                            <label for="textStroke">啟用白色描邊</label>
                         </div>
                     </div>
                 </div>
@@ -303,6 +434,8 @@
     <script>
         let currentTemplate = '2x2';
         let menuTexts = ['選單1', '選單2', '選單3', '選單4'];
+        let backgroundImage = null;
+        let backgroundType = 'color';
         
         const templates = {
             '2x2': { cols: 2, rows: 2, count: 4, texts: ['選單1', '選單2', '選單3', '選單4'] },
@@ -314,6 +447,7 @@
         function initializeApp() {
             setupTemplateButtons();
             setupColorInputs();
+            setupBackgroundControls();
             setupDownloadButton();
             generateMenuInputs();
             drawMenu();
@@ -338,10 +472,119 @@
         }
         
         function setupColorInputs() {
-            const colorInputs = ['bgColor', 'textColor', 'borderColor'];
+            const colorInputs = ['textColor', 'borderColor'];
             colorInputs.forEach(id => {
-                document.getElementById(id).addEventListener('input', drawMenu);
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', drawMenu);
+                }
             });
+            
+            // 背景色輸入
+            const bgColorInput = document.getElementById('bgColor');
+            if (bgColorInput) {
+                bgColorInput.addEventListener('input', drawMenu);
+            }
+            
+            // 文字描邊
+            const textStroke = document.getElementById('textStroke');
+            if (textStroke) {
+                textStroke.addEventListener('change', drawMenu);
+            }
+        }
+        
+        function setupBackgroundControls() {
+            // 背景類型切換
+            const bgTypeRadios = document.querySelectorAll('input[name="bgType"]');
+            bgTypeRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    backgroundType = this.value;
+                    toggleBackgroundControls();
+                    drawMenu();
+                });
+            });
+            
+            // 檔案上傳
+            const fileInput = document.getElementById('bgImageInput');
+            const uploadArea = document.getElementById('fileUploadArea');
+            
+            fileInput.addEventListener('change', handleFileSelect);
+            uploadArea.addEventListener('click', () => fileInput.click());
+            
+            // 拖拽上傳
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            uploadArea.addEventListener('drop', handleFileDrop);
+            
+            // 透明度滑桿
+            const opacitySlider = document.getElementById('bgOpacity');
+            const opacityValue = document.getElementById('opacityValue');
+            opacitySlider.addEventListener('input', function() {
+                opacityValue.textContent = Math.round(this.value * 100) + '%';
+                drawMenu();
+            });
+            
+            // 填充方式
+            const fitMode = document.getElementById('bgFitMode');
+            fitMode.addEventListener('change', drawMenu);
+        }
+        
+        function toggleBackgroundControls() {
+            const colorControls = document.getElementById('colorBgControls');
+            const imageControls = document.getElementById('imageBgControls');
+            
+            if (backgroundType === 'color') {
+                colorControls.style.display = 'block';
+                imageControls.style.display = 'none';
+            } else {
+                colorControls.style.display = 'none';
+                imageControls.style.display = 'block';
+            }
+        }
+        
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                loadImageFile(file);
+            }
+        }
+        
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('dragover');
+        }
+        
+        function handleDragLeave(event) {
+            event.currentTarget.classList.remove('dragover');
+        }
+        
+        function handleFileDrop(event) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('dragover');
+            
+            const files = event.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                loadImageFile(files[0]);
+            }
+        }
+        
+        function loadImageFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    backgroundImage = img;
+                    updateUploadAreaText('已上傳: ' + file.name);
+                    drawMenu();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function updateUploadAreaText(text) {
+            const uploadText = document.querySelector('.upload-text');
+            uploadText.textContent = text;
         }
         
         function generateMenuInputs() {
@@ -372,13 +615,22 @@
             const ctx = canvas.getContext('2d');
             const template = templates[currentTemplate];
             
-            const bgColor = document.getElementById('bgColor').value;
+            // 清除畫布
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 繪製背景
+            if (backgroundType === 'image' && backgroundImage) {
+                drawBackgroundImage(ctx, canvas);
+            } else {
+                const bgColor = document.getElementById('bgColor').value;
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            
             const textColor = document.getElementById('textColor').value;
             const borderColor = document.getElementById('borderColor').value;
-            
-            // 清除畫布
-            ctx.fillStyle = bgColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const useTextStroke = document.getElementById('textStroke').checked;
             
             // 計算每個格子的尺寸
             const cellWidth = canvas.width / template.cols;
@@ -413,12 +665,60 @@
                     
                     // 處理長文字自動換行
                     const text = menuTexts[index] || `選單${index + 1}`;
-                    drawWrappedText(ctx, text, centerX, centerY, cellWidth - 20, fontSize);
+                    drawWrappedTextWithStroke(ctx, text, centerX, centerY, cellWidth - 20, fontSize, useTextStroke);
                 }
             }
         }
         
-        function drawWrappedText(ctx, text, x, y, maxWidth, fontSize) {
+        function drawBackgroundImage(ctx, canvas) {
+            const opacity = document.getElementById('bgOpacity').value;
+            const fitMode = document.getElementById('bgFitMode').value;
+            
+            ctx.save();
+            ctx.globalAlpha = opacity;
+            
+            const imgWidth = backgroundImage.width;
+            const imgHeight = backgroundImage.height;
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            
+            let drawWidth, drawHeight, drawX, drawY;
+            
+            switch (fitMode) {
+                case 'cover':
+                    const scaleX = canvasWidth / imgWidth;
+                    const scaleY = canvasHeight / imgHeight;
+                    const scale = Math.max(scaleX, scaleY);
+                    drawWidth = imgWidth * scale;
+                    drawHeight = imgHeight * scale;
+                    drawX = (canvasWidth - drawWidth) / 2;
+                    drawY = (canvasHeight - drawHeight) / 2;
+                    break;
+                    
+                case 'contain':
+                    const scaleXContain = canvasWidth / imgWidth;
+                    const scaleYContain = canvasHeight / imgHeight;
+                    const scaleContain = Math.min(scaleXContain, scaleYContain);
+                    drawWidth = imgWidth * scaleContain;
+                    drawHeight = imgHeight * scaleContain;
+                    drawX = (canvasWidth - drawWidth) / 2;
+                    drawY = (canvasHeight - drawHeight) / 2;
+                    break;
+                    
+                case 'stretch':
+                default:
+                    drawWidth = canvasWidth;
+                    drawHeight = canvasHeight;
+                    drawX = 0;
+                    drawY = 0;
+                    break;
+            }
+            
+            ctx.drawImage(backgroundImage, drawX, drawY, drawWidth, drawHeight);
+            ctx.restore();
+        }
+        
+        function drawWrappedTextWithStroke(ctx, text, x, y, maxWidth, fontSize, useStroke) {
             const words = text.split('');
             let line = '';
             const lines = [];
@@ -441,7 +741,19 @@
             const startY = y - ((lines.length - 1) * lineHeight) / 2;
             
             lines.forEach((line, index) => {
-                ctx.fillText(line, x, startY + index * lineHeight);
+                const lineY = startY + index * lineHeight;
+                
+                if (useStroke) {
+                    // 繪製白色描邊
+                    ctx.save();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 3;
+                    ctx.strokeText(line, x, lineY);
+                    ctx.restore();
+                }
+                
+                // 繪製文字
+                ctx.fillText(line, x, lineY);
             });
         }
         
